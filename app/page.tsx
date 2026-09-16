@@ -3,6 +3,25 @@
 
 import { useState } from "react";
 
+interface PageSummary {
+  pageNumber: number;
+  name: string;
+  url: string;
+  elements: number;
+  forms: number;
+  inputs: number;
+}
+
+interface ExplorationResult {
+  targetUrl: string;
+  pages: PageSummary[];
+  pageCount: number;
+  skippedResources: string[];
+  status: "completed" | "error" | "partial";
+  errors: string[];
+  sessionId: string;
+}
+
 function SearchIcon() {
   return (
     <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
@@ -96,10 +115,64 @@ function RobotIcon() {
 export default function Home() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ExplorationResult | null>(null);
 
-const handleSearch = () => {
-  alert("BUTTON WORKS!");
-};
+  const validateUrlInput = (input: string): string | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return "URL is required";
+
+    let urlToTest = trimmed;
+    if (!urlToTest.match(/^https?:\/\//i)) {
+      urlToTest = `https://${urlToTest}`;
+    }
+
+    try {
+      const parsed = new URL(urlToTest);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return "Only HTTP and HTTPS URLs are supported";
+      }
+      if (!parsed.hostname || parsed.hostname.length < 3) {
+        return "Invalid hostname";
+      }
+      return null;
+    } catch {
+      return "Invalid URL format";
+    }
+  };
+
+  const handleSearch = async () => {
+    const validationError = validateUrlInput(url);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/explore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.error || "Exploration failed");
+        return;
+      }
+
+      setResult(data.result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to connect to server");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="page">
@@ -113,7 +186,7 @@ const handleSearch = () => {
           <RobotIcon />
         </div>
 
-        <h1>Hi, I’m ARGUS.</h1>
+        <h1>Hi, I&apos;m ARGUS.</h1>
 
         <p>
           Watching Your Digital World Like We Have a Hundred Eyes.
@@ -135,8 +208,9 @@ const handleSearch = () => {
               }}
               placeholder="Enter your URL"
               aria-label="Enter your URL"
+              disabled={loading}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && !loading) {
                   handleSearch();
                 }
               }}
@@ -150,8 +224,16 @@ const handleSearch = () => {
                 className="search-button"
                 aria-label="Start testing"
                 onClick={handleSearch}
+                disabled={loading}
               >
-                <SearchIcon />
+                {loading ? (
+                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" className="animate-spin">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <SearchIcon />
+                )}
               </button>
             </div>
 
@@ -164,6 +246,80 @@ const handleSearch = () => {
           )}
 
         </div>
+
+        {loading && (
+          <div className="exploration-status">
+            <p>Exploring website... Please wait.</p>
+          </div>
+        )}
+
+        {result && (
+          <div className="exploration-results">
+            <h2>Exploration Results</h2>
+
+            <div className="result-overview">
+              <div className="overview-item">
+                <span className="overview-label">Target</span>
+                <span className="overview-value">{result.targetUrl}</span>
+              </div>
+              <div className="overview-item">
+                <span className="overview-label">Pages</span>
+                <span className="overview-value overview-number">{result.pageCount}</span>
+              </div>
+              <div className="overview-item">
+                <span className="overview-label">Status</span>
+                <span className={`overview-value status-${result.status}`}>{result.status}</span>
+              </div>
+            </div>
+
+            {result.skippedResources.length > 0 && (
+              <div className="result-skipped">
+                <p><strong>Skipped {result.skippedResources.length} non-HTML resource(s)</strong> (downloads, files, media, etc.)</p>
+              </div>
+            )}
+
+            {result.errors.length > 0 && (
+              <div className="result-errors">
+                <p><strong>Errors:</strong></p>
+                <ul>
+                  {result.errors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="result-pages">
+              <h3>Pages: {result.pageCount}</h3>
+              {result.pages.map((page) => (
+                <div key={page.pageNumber} className="page-card">
+                  <div className="page-header">
+                    <span className="page-number">{page.pageNumber}</span>
+                    <span className="page-name">{page.name}</span>
+                  </div>
+                  <div className="page-details">
+                    <div className="detail-row">
+                      <span className="detail-label">URL:</span>
+                      <span className="detail-value detail-url">{page.url}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Elements:</span>
+                      <span className="detail-value">{page.elements}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Forms:</span>
+                      <span className="detail-value">{page.forms}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Inputs:</span>
+                      <span className="detail-value">{page.inputs}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </section>
 

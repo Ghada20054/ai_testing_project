@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/xiaomi/mimo-v2-5",
+  "default_agent": "argus-dev",
+  "instructions": ["AGENTS.md"],
+  "agent": {
+    "argus-dev": {
+      "description": "ARGUS development agent for Sprint 1 & 2 implementation. Inspects project documentation before architectural decisions and keeps implementation aligned with requirements FR-01, FR-02, FR-03.",
+      "mode": "primary",
+      "model": "openrouter/xiaomi/mimo-v2-5",
+      "permission": {
+        "read": "allow",
+        "edit": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        "bash": {
+          "npm *": "allow",
+          "npx *": "allow",
+          "node *": "allow",
+          "type *": "allow",
+          "dir *": "allow",
+          "Get-ChildItem *": "allow",
+          "powershell *": "allow",
+          "*": "ask"
+        },
+        "external_directory": "allow",
+        "todowrite": "allow",
+        "question": "allow",
+        "webfetch": "allow",
+        "skill": "allow"
+      }
+    }
+  }
+}
