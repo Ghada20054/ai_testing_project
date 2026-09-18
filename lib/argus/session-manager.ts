@@ -3,7 +3,7 @@ import { TestingSession } from "./types";
 const sessions = new Map<string, TestingSession>();
 
 export function createSession(targetUrl: string): TestingSession {
-  const id = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const id = crypto.randomUUID();
 
   const session: TestingSession = {
     id,
@@ -22,7 +22,10 @@ export function getSession(id: string): TestingSession | undefined {
   return sessions.get(id);
 }
 
-export function updateSession(id: string, updates: Partial<TestingSession>): TestingSession | undefined {
+export function updateSession(
+  id: string,
+  updates: Partial<TestingSession>
+): TestingSession | undefined {
   const session = sessions.get(id);
   if (!session) return undefined;
 

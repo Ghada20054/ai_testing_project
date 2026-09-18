@@ -32,7 +32,7 @@ export function validateUrl(input: string): URLValidationResult {
       return { valid: false, error: "Hostname cannot contain spaces" };
     }
 
-    const normalized = `${parsed.protocol}//${parsed.hostname}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const normalized = parsed.toString();
 
     return { valid: true, normalizedUrl: normalized };
   } catch {

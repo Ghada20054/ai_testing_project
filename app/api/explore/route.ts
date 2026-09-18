@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const validation = validateUrl(url);
+
     if (!validation.valid) {
       return NextResponse.json(
         { success: false, error: validation.error },
@@ -33,7 +34,11 @@ export async function POST(request: NextRequest) {
       result,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Internal server error";
+    console.error("EXPLORE ERROR:", err);
+
+    const message =
+      err instanceof Error ? err.message : String(err);
+
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }
