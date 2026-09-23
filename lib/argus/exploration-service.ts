@@ -89,10 +89,24 @@ export async function runExploration(
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await page.goto(normalizedUrl, {
-      timeout: options.timeout || 30000,
-      waitUntil: "domcontentloaded",
-    });
+    try {
+      await page.goto(normalizedUrl, {
+        timeout: options.timeout || 30000,
+        waitUntil: "domcontentloaded",
+      });
+    } catch (navErr) {
+      const msg = navErr instanceof Error ? navErr.message : "";
+      if (msg.includes("ERR_NAME_NOT_RESOLVED")) {
+        throw new Error("This URL is invalid or incorrect. Please check and re-enter it.");
+      }
+      if (msg.includes("ERR_CONNECTION_REFUSED") || msg.includes("ERR_CONNECTION_TIMED_OUT")) {
+        throw new Error("Cannot connect to this website. The server may be down or the URL is incorrect.");
+      }
+      if (msg.includes("ERR_SSL") || msg.includes("ERR_CERT")) {
+        throw new Error("SSL/TLS error connecting to this website. The URL may be incorrect.");
+      }
+      throw new Error("Could not open this URL. Please check that the URL is valid and the website is reachable.");
+    }
 
     const visited = new Set<string>();
     const navigableUrls: string[] = [];
